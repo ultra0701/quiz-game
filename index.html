@@ -6,20 +6,20 @@
 <title>知识闯关</title>
 <style>
   *{box-sizing:border-box}
-  .wrap{font-family:var(--font,system-ui);color:var(--foreground);width:420px}
+  .wrap{font-family:var(--font,system-ui);color:#1f2328;width:420px;background:rgba(255,255,255,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:14px;padding:18px;box-shadow:0 10px 34px rgba(0,0,0,.10)}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-  .qnum{font-size:13px;color:var(--muted-foreground)}
-  .stats{font-size:13px;color:var(--muted-foreground)}
+  .qnum{font-size:13px;color:#6b7280}
+  .stats{font-size:13px;color:#6b7280}
   .stats b{color:var(--accent);font-weight:800}
-  .bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:18px}
+  .bar{height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-bottom:18px}
   .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
   .q{font-size:19px;font-weight:700;line-height:1.5;margin-bottom:16px}
   .opts{display:flex;flex-direction:column;gap:10px}
   .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 14px;
-    background:var(--card);border:1px solid var(--border);border-radius:11px;cursor:pointer;
-    color:var(--foreground);font-size:15px;transition:transform .08s ease, border-color .15s ease, background .15s ease}
+    background:#ffffff;border:1px solid #e5e7eb;border-radius:11px;cursor:pointer;
+    color:#1f2328;font-size:15px;transition:transform .08s ease, border-color .15s ease, background .15s ease}
   .opt:hover{border-color:var(--accent);transform:translateY(-1px)}
-  .opt .key{flex:0 0 26px;height:26px;border-radius:7px;background:var(--border);color:var(--muted-foreground);
+  .opt .key{flex:0 0 26px;height:26px;border-radius:7px;background:#e5e7eb;color:#6b7280;
     display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
   .opt.correct{border-color:#22c55e;background:rgba(34,197,94,.12)}
   .opt.correct .key{background:#22c55e;color:#fff}
@@ -40,9 +40,9 @@
   .result.show{display:block;animation:pop .3s ease}
   .result .emoji{font-size:54px}
   .result .grade{font-size:26px;font-weight:800;margin:8px 0 4px}
-  .result .scoreline{font-size:15px;color:var(--muted-foreground)}
+  .result .scoreline{font-size:15px;color:#6b7280}
   .result .scoreline b{color:var(--accent);font-size:20px}
-  .result .meta{margin:14px 0;font-size:13px;color:var(--muted-foreground)}
+  .result .meta{margin:14px 0;font-size:13px;color:#6b7280}
   .again{margin-top:6px;padding:13px 30px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
 </style>
 </head>
