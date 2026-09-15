@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知识闯关</title>
+<style>
+  *{box-sizing:border-box}
+  .wrap{font-family:var(--font,system-ui);color:var(--foreground);width:420px}
+  .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .qnum{font-size:13px;color:var(--muted-foreground)}
+  .stats{font-size:13px;color:var(--muted-foreground)}
+  .stats b{color:var(--accent);font-weight:800}
+  .bar{height:6px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:18px}
+  .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
+  .q{font-size:19px;font-weight:700;line-height:1.5;margin-bottom:16px}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 14px;
+    background:var(--card);border:1px solid var(--border);border-radius:11px;cursor:pointer;
+    color:var(--foreground);font-size:15px;transition:transform .08s ease, border-color .15s ease, background .15s ease}
+  .opt:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .opt .key{flex:0 0 26px;height:26px;border-radius:7px;background:var(--border);color:var(--muted-foreground);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  .opt.correct{border-color:#22c55e;background:rgba(34,197,94,.12)}
+  .opt.correct .key{background:#22c55e;color:#fff}
+  .opt.wrong{border-color:#ef4444;background:rgba(239,68,68,.12)}
+  .opt.wrong .key{background:#ef4444;color:#fff}
+  .opt:disabled{cursor:default;opacity:.92}
+  .fb{margin-top:14px;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.55;display:none}
+  .fb.show{display:block;animation:pop .18s ease}
+  .fb.good{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4)}
+  .fb.bad{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4)}
+  .fb b{display:block;margin-bottom:3px}
+  .next{margin-top:14px;width:100%;padding:13px;border:none;border-radius:11px;background:var(--accent);
+    color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:none}
+  .next.show{display:block}
+  @keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  /* 结算页 */
+  .result{text-align:center;padding:30px 10px;display:none}
+  .result.show{display:block;animation:pop .3s ease}
+  .result .emoji{font-size:54px}
+  .result .grade{font-size:26px;font-weight:800;margin:8px 0 4px}
+  .result .scoreline{font-size:15px;color:var(--muted-foreground)}
+  .result .scoreline b{color:var(--accent);font-size:20px}
+  .result .meta{margin:14px 0;font-size:13px;color:var(--muted-foreground)}
+  .again{margin-top:6px;padding:13px 30px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="quiz">
+    <div class="top">
+      <span class="qnum" id="qnum"></span>
+      <span class="stats">得分 <b id="score">0</b> · 连击 <b id="streak">0</b></span>
+    </div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="q" id="q"></div>
+    <div class="opts" id="opts"></div>
+    <div class="fb" id="fb"></div>
+    <button class="next" id="next">下一题 →</button>
+  </div>
+
+  <div class="result" id="result">
+    <div class="emoji" id="emoji"></div>
+    <div class="grade" id="grade"></div>
+    <div class="scoreline">得分 <b id="fscore">0</b> / <span id="ftotal">0</span></div>
+    <div class="meta" id="meta"></div>
+    <button class="again" id="again">再来一局</button>
+  </div>
+</div>
+<script>
+(function(){
+  const QS = [
+    {q:'地球上面积最大的海洋是？', o:['大西洋','太平洋','印度洋','北冰洋'], a:1, e:'太平洋约占地球海洋总面积的一半，是最大的海洋。'},
+    {q:'中华人民共和国的首都是？', o:['上海','广州','北京','深圳'], a:2, e:'北京是中国的首都。'},
+    {q:'太阳系中体积最大的行星是？', o:['地球','火星','木星','土星'], a:2, e:'木星是太阳系最大的行星，质量约为其他行星总和的 2.5 倍。'},
+    {q:'水的化学式是？', o:['CO₂','H₂O','O₂','NaCl'], a:1, e:'水由两个氢原子和一个氧原子组成，化学式 H₂O。'},
+    {q:'「床前明月光」的下一句是？', o:['疑是地上霜','低头思故乡','举头望明月','春风吹又生'], a:0, e:'出自李白《静夜思》：床前明月光，疑是地上霜。'},
+    {q:'一年有多少个月？', o:['10','11','12','13'], a:2, e:'公历一年有 12 个月。'},
+    {q:'世界上最高的山峰是？', o:['珠穆朗玛峰','乔戈里峰','富士山','勃朗峰'], a:0, e:'珠穆朗玛峰海拔约 8848.86 米，是世界最高峰。'},
+    {q:'计算机里的「CPU」中文通常叫什么？', o:['内存','中央处理器','硬盘','显卡'], a:1, e:'CPU 即 Central Processing Unit，中央处理器，是计算机的运算核心。'},
+    {q:'声音在下列哪种介质中传播最快？', o:['空气','水','真空','钢铁'], a:3, e:'声音在固体中传播最快，钢铁中约 5000+ m/s，真空无法传播声音。'},
+    {q:'下列哪项不属于中国古代「四大发明」？', o:['造纸术','指南针','火药','地动仪'], a:3, e:'四大发明是造纸术、指南针、火药、活字印刷术；地动仪是张衡的发明，但不在四大发明之列。'}
+  ];
+
+  const $ = id => document.getElementById(id);
+  const KEYS = ['A','B','C','D'];
+  let idx=0, score=0, streak=0, best=0, answered=false;
+
+  function render(){
+    $('quiz').style.display='block';
+    $('result').classList.remove('show');
+    const q = QS[idx];
+    answered=false;
+    $('qnum').textContent = `第 ${idx+1} / ${QS.length} 题`;
+    $('score').textContent = score;
+    $('streak').textContent = streak;
+    $('bar').style.width = ((idx)/QS.length*100)+'%';
+    $('q').textContent = q.q;
+    $('fb').className='fb';
+    $('next').className='next';
+    $('opts').innerHTML='';
+    q.o.forEach((opt,i)=>{
+      const b=document.createElement('button');
+      b.className='opt';
+      b.innerHTML = `<span class="key">${KEYS[i]}</span><span>${opt}</span>`;
+      b.onclick=()=>choose(i);
+      $('opts').appendChild(b);
+    });
+  }
+
+  function choose(i){
+    if (answered) return;
+    answered=true;
+    const q=QS[idx];
+    const btns=[...document.querySelectorAll('.opt')];
+    btns.forEach(b=>b.disabled=true);
+    btns[q.a].classList.add('correct');
+    const good = i===q.a;
+    if (!good) btns[i].classList.add('wrong');
+    if (good){ score+=10; streak++; best=Math.max(best,streak); }
+    else streak=0;
+    $('score').textContent=score;
+    $('streak').textContent=streak;
+    const fb=$('fb');
+    fb.className='fb show '+(good?'good':'bad');
+    fb.innerHTML = good
+      ? `<b>✅ 答对了！</b>${q.e}`
+      : `<b>❌ 答错了，正确答案是 ${KEYS[q.a]}</b>${q.e}`;
+    const nx=$('next');
+    nx.className='next show';
+    nx.textContent = idx===QS.length-1 ? '查看结果 🏁' : '下一题 →';
+  }
+
+  function next(){
+    idx++;
+    if (idx < QS.length){ render(); }
+    else showResult();
+  }
+
+  function showResult(){
+    $('quiz').style.display='none';
+    const r=$('result');
+    r.classList.add('show');
+    const pct = score / (QS.length*10);
+    let emoji, grade, msg;
+    if (pct===1){ emoji='🏆'; grade='满分！'; msg='全部答对，知识储备拉满！'; }
+    else if (pct>=0.8){ emoji='🎉'; grade='优秀'; msg='相当厉害，只有一点点小失误。'; }
+    else if (pct>=0.6){ emoji='👍'; grade='不错'; msg='基础扎实，再刷一遍冲击满分吧。'; }
+    else if (pct>=0.4){ emoji='💪'; grade='继续加油'; msg='有几题被卡住了，多刷几次会更好。'; }
+    else { emoji='📚'; grade='再接再厉'; msg='别灰心，正好是学习的机会！'; }
+    $('emoji').textContent=emoji;
+    $('grade').textContent=grade;
+    $('fscore').textContent=score;
+    $('ftotal').textContent=QS.length*10;
+    $('meta').textContent=`正确 ${Math.round(pct*QS.length)} / ${QS.length} 题 · 最高连击 ${best} 连`;
+    (window.hermes && window.hermes.send) && (window._report=()=>{});
+  }
+
+  $('next').onclick=next;
+  $('again').onclick=()=>{ idx=0; score=0; streak=0; best=0; render(); };
+  document.addEventListener('keydown', e=>{
+    const k=e.key.toUpperCase();
+    if (k>='1'&&k<='4' && !answered){ choose(+k-1); }
+    else if (k===' '||k==='ENTER'){ if(answered && $('next').classList.contains('show')) next(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
