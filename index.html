@@ -6,19 +6,24 @@
 <title>知识闯关</title>
 <style>
   *{box-sizing:border-box}
-  .wrap{font-family:var(--font,system-ui);color:#1f2328;width:420px;background:rgba(255,255,255,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:14px;padding:18px;box-shadow:0 10px 34px rgba(0,0,0,.10)}
+  body{margin:0;min-height:100vh;padding:24px 16px;display:flex;justify-content:center;align-items:flex-start;overflow-x:hidden}
+  .wrap{font-family:var(--font,system-ui);color:#1f2328;width:100%;max-width:420px;margin:0 auto;background:rgba(255,255,255,.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:14px;padding:18px;box-shadow:0 10px 34px rgba(0,0,0,.10)}
   .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .qnum{font-size:13px;color:#6b7280}
   .stats{font-size:13px;color:#6b7280}
-  .stats b{color:var(--accent);font-weight:800}
+  .stats b{color:#6366f1;font-weight:800}
   .bar{height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-bottom:18px}
-  .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s ease}
+  .bar i{display:block;height:100%;background:#6366f1;width:0;transition:width .3s ease}
+  .timer{display:flex;align-items:center;justify-content:space-between;margin:-8px 0 14px;color:#6b7280;font-size:13px}
+  .timer .time b{color:#374151;font-size:17px;font-weight:800}
+  .timer.urgent,.timer.urgent .time b{color:#dc2626}
   .q{font-size:19px;font-weight:700;line-height:1.5;margin-bottom:16px}
   .opts{display:flex;flex-direction:column;gap:10px}
   .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:13px 14px;
     background:#ffffff;border:1px solid #e5e7eb;border-radius:11px;cursor:pointer;
     color:#1f2328;font-size:15px;transition:transform .08s ease, border-color .15s ease, background .15s ease}
-  .opt:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .opt>span:last-child{min-width:0;overflow-wrap:anywhere}
+  .opt:hover{border-color:#6366f1;transform:translateY(-1px)}
   .opt .key{flex:0 0 26px;height:26px;border-radius:7px;background:#e5e7eb;color:#6b7280;
     display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
   .opt.correct{border-color:#22c55e;background:rgba(34,197,94,.12)}
@@ -31,7 +36,7 @@
   .fb.good{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4)}
   .fb.bad{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4)}
   .fb b{display:block;margin-bottom:3px}
-  .next{margin-top:14px;width:100%;padding:13px;border:none;border-radius:11px;background:var(--accent);
+  .next{margin-top:14px;width:100%;padding:13px;border:none;border-radius:11px;background:#6366f1;
     color:#fff;font-size:15px;font-weight:700;cursor:pointer;display:none}
   .next.show{display:block}
   @keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
@@ -41,9 +46,27 @@
   .result .emoji{font-size:54px}
   .result .grade{font-size:26px;font-weight:800;margin:8px 0 4px}
   .result .scoreline{font-size:15px;color:#6b7280}
-  .result .scoreline b{color:var(--accent);font-size:20px}
+  .result .scoreline b{color:#6366f1;font-size:20px}
   .result .meta{margin:14px 0;font-size:13px;color:#6b7280}
-  .again{margin-top:6px;padding:13px 30px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  .again{margin-top:6px;padding:13px 30px;border:none;border-radius:11px;background:#6366f1;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  @media (max-width:500px){
+    body{padding:0}
+    .wrap{max-width:none;min-height:100vh;border-radius:0;padding:14px 12px}
+    .top{gap:8px;margin-bottom:6px}
+    .qnum,.stats{font-size:12px}
+    .bar{margin-bottom:12px}
+    .timer{margin:-4px 0 10px;font-size:12px}
+    .timer .time b{font-size:15px}
+    .q{font-size:17px;line-height:1.42;margin-bottom:12px}
+    .opts{gap:8px}
+    .opt{gap:9px;padding:10px 11px;font-size:14px}
+    .opt .key{flex-basis:24px;height:24px;font-size:12px}
+    .fb{margin-top:10px;padding:10px 11px;font-size:13px}
+    .next{margin-top:10px;padding:11px;font-size:14px}
+    .result{padding:22px 8px}
+    .result .emoji{font-size:44px}
+    .result .grade{font-size:23px}
+  }
 </style>
 </head>
 <body>
@@ -54,6 +77,10 @@
       <span class="stats">得分 <b id="score">0</b> · 连击 <b id="streak">0</b></span>
     </div>
     <div class="bar"><i id="bar"></i></div>
+    <div class="timer" id="timer" role="timer" aria-live="polite">
+      <span>剩余时间</span>
+      <span class="time"><b id="time">15</b> 秒</span>
+    </div>
     <div class="q" id="q"></div>
     <div class="opts" id="opts"></div>
     <div class="fb" id="fb"></div>
@@ -85,9 +112,47 @@
 
   const $ = id => document.getElementById(id);
   const KEYS = ['A','B','C','D'];
+  const QUESTION_SECONDS = 15;
+  const AUTO_ADVANCE_MS = 2000;
   let idx=0, score=0, streak=0, best=0, answered=false;
+  let timeLeft=QUESTION_SECONDS, timerId=null, autoNextId=null;
+
+  function stopTimer(){
+    if (timerId !== null){
+      clearInterval(timerId);
+      timerId=null;
+    }
+  }
+
+  function clearAutoNext(){
+    if (autoNextId !== null){
+      clearTimeout(autoNextId);
+      autoNextId=null;
+    }
+  }
+
+  function updateTimer(){
+    $('time').textContent=timeLeft;
+    $('timer').classList.toggle('urgent', timeLeft<=5);
+  }
+
+  function resetTimer(){
+    stopTimer();
+    timeLeft=QUESTION_SECONDS;
+    updateTimer();
+    timerId=setInterval(()=>{
+      timeLeft--;
+      updateTimer();
+      if (timeLeft<=0){
+        stopTimer();
+        finishQuestion(-1,true);
+      }
+    },1000);
+  }
 
   function render(){
+    stopTimer();
+    clearAutoNext();
     $('quiz').style.display='block';
     $('result').classList.remove('show');
     const q = QS[idx];
@@ -107,38 +172,54 @@
       b.onclick=()=>choose(i);
       $('opts').appendChild(b);
     });
+    resetTimer();
   }
 
   function choose(i){
+    finishQuestion(i,false);
+  }
+
+  function finishQuestion(i,timedOut){
     if (answered) return;
     answered=true;
+    stopTimer();
     const q=QS[idx];
     const btns=[...document.querySelectorAll('.opt')];
     btns.forEach(b=>b.disabled=true);
     btns[q.a].classList.add('correct');
-    const good = i===q.a;
-    if (!good) btns[i].classList.add('wrong');
+    const good = !timedOut && i===q.a;
+    if (!good && !timedOut) btns[i].classList.add('wrong');
     if (good){ score+=10; streak++; best=Math.max(best,streak); }
     else streak=0;
     $('score').textContent=score;
     $('streak').textContent=streak;
     const fb=$('fb');
     fb.className='fb show '+(good?'good':'bad');
-    fb.innerHTML = good
-      ? `<b>✅ 答对了！</b>${q.e}`
-      : `<b>❌ 答错了，正确答案是 ${KEYS[q.a]}</b>${q.e}`;
+    if (timedOut){
+      fb.innerHTML = `<b>⏰ 时间到！正确答案是 ${KEYS[q.a]}</b>${q.e}`;
+    } else {
+      fb.innerHTML = good
+        ? `<b>✅ 答对了！</b>${q.e}`
+        : `<b>❌ 答错了，正确答案是 ${KEYS[q.a]}</b>${q.e}`;
+    }
     const nx=$('next');
     nx.className='next show';
     nx.textContent = idx===QS.length-1 ? '查看结果 🏁' : '下一题 →';
+    if (timedOut){
+      autoNextId=setTimeout(next,AUTO_ADVANCE_MS);
+    }
   }
 
   function next(){
+    clearAutoNext();
     idx++;
     if (idx < QS.length){ render(); }
     else showResult();
   }
 
   function showResult(){
+    stopTimer();
+    clearAutoNext();
     $('quiz').style.display='none';
     const r=$('result');
     r.classList.add('show');
